@@ -1,0 +1,15 @@
+环境与IDE:
+
+OS:ubuntu16.04LST
+
+
+Python verson:3.6.5
+
+IDE:pycharm
+
+
+database:mysql 
+version: 
+mysql  Ver 14.14 Distrib 5.7.21, for Linux (x86_64) using  EditLine wrapper
+
+参考书籍：《Python编程从入门到实践》、《Python Cookbook》、《数据库系统概论（第五版）》
