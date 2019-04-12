@@ -1,0 +1,14 @@
+def classify0(inX, dataSet, labels, k):    #inX为输入样本，例如[85,90]
+    dataSetSize = dataSet.shape[0]              #求出输入数据矩阵的行数（样本个数）
+    diffMat = tile(inX, (dataSetSize,1)) - dataSet    #求矩阵差
+    sqDiffMat = diffMat ** 2                  
+    sqDistance = sqDiffMat.sum(axis = 1)          #平方和
+    distance = sqDistance ** 0.5               #测试样本点距离每个样本点的距离  
+    sortedDistance = distance.argsort()          #将距离按升序排列
+
+    classCount = {}
+    for i in range(k):
+        voteLabel = labels[sortedDistance[i]]      #遍历前k个样本的标签
+        classCount[voteLabel] = classCount.get(voteLabel,0) + 1  #对标签进行计数，即每一类出现的次数
+    sortedClassCount = sorted(classCount.items(),key = operator.itemgetter(1),reverse = True)  #将计数后的标签按降序进行排列，得到元组列表
+    return sortedClassCount[0][0]

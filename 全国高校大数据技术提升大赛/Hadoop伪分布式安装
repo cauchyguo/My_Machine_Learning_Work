@@ -1,0 +1,164 @@
+1.首先来配置SSH免密码登陆
+
+输入:ssh-keygen -t rsa 生成ssh私钥和公钥(一路回车，默认将密钥保存在当前用户下的.ssh隐藏文件夹下)
+
+在~/.ssh目录下，创建一个名为authorized_keys的空文件，并存储公钥文件的id_rsa.pub里的内容，追加到authorized_keys中
+touch ~/.ssh/authorized_keys
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
+下面执行ssh localhost测试ssh配置是否正确（一次使用ssh访问，会提醒是否继续连接）
+ssh localhost
+后续再执行ssh localhost时，就不用输入密码了
+
+2.在配置hadoop前先创建两个位于根目录下的文件夹。/apps目录用来存放安装的框架，/data目录用来存放临时数据、HDFS数据、程序代码或脚本。
+
+分别创建apps文夹件和data文件夹。并将其目录切换所属的用户为zhangyu及用户组为zhangyu。
+sudo mkdir /apps /data
+sudo chown -R zhangyu:zhangyu /apps /data
+ll -t | more
+
+3.配置HDFS。
+创建/data/hadoop1目录，用来存放相关安装工具，如jdk安装包jdk-7u75-linux-x64.tar.gz及hadoop安装包hadoop-2.6.0-cdh5.4.5.tar.gz
+mkdir -p /data/hadoop1
+cd /data/hadoop1
+wget http://192.168.1.100:60000/allfiles/hadoop1/jdk-7u75-linux-x64.tar.gz
+wget http://192.168.1.100:60000/allfiles/hadoop1/hadoop-2.6.0-cdh5.4.5.tar.gz
+ll /data/hadoop1/
+
+4.安装jdk。
+使用tar命令将/data/hadoop1目录下jdk-7u75-linux-x64.tar.gz 解压缩到/apps目录下并将该解压后的目录重命名为java.
+tar -xzvf /data/hadoop1/jdk-7u75-linux-x64.tar.gz -C /apps
+cd /apps/
+ls -l
+mv jdk1.7.0_75  java
+
+5.接下来修改环境变量，将jdk的路径添加到用户环境变量中，这里通过修改用户目录下的.bashrc文件实现
+sudo vim ~/.bashrc
+
+输入上面的命令，打开存储环境变量的文件。空几行，将java的环境变量，追加进用户环境变量中。
+#java  
+export JAVA_HOME=/apps/java  
+export PATH=$JAVA_HOME/bin:$PATH 
+
+保存并退出后使用bash命令使环境变量生效
+bash ~/.bashrc
+
+输入java -version检查环境变量是否生效
+java -version
+
+6.下面安装hadoop，切换到/data/hadoop1目录下，将hadoop-2.6.0-cdh5.4.5.tar.gz解压缩到/apps目录下。并将该解压后的目录重命名为hadoop
+cd /data/hadoop1
+tar -xzvf /data/hadoop1/hadoop-2.6.0-cdh5.4.5.tar.gz -C /apps/
+mv /apps/hadoop-2.6.0-cdh5.4.5/ /apps/hadoop
+
+7.修改用户环境变量，将hadoop的路径添加到path中。方法同jdk环境变量的配置。
+sudo vim ~/.bashrc
+#hadoop  
+export HADOOP_HOME=/apps/hadoop  
+export PATH=$HADOOP_HOME/bin:$PATH 
+
+
+配置完成后输入hadoop version验证hadoop环境变量是否配置完成
+
+可见hadoop版本，配置完成
+
+8.下面来修改hadoop本身相关的配置。
+首先切换到hadoop配置目录下。使用vim编辑/apps/hadoop/etc/hadoop/hadoop-env.sh文件
+将JAVA_HOME追加到hadoop-env.sh文件，见下图
+cd /apps/hadoop/etc/hadoop
+vim /apps/hadoop/etc/hadoop/hadoop-env.sh
+export JAVA_HOME=/apps/java
+
+提前创建/data/tmp/hadoop/tmp(hadoop临时文件存储位置)后，输入vim /apps/hadoop/etc/hadoop/core-site.xml，打开core-site.xml配置文件。在configuration栏中配置hadoop临时文件存储位置以及默认的文件系统(HDFS)的地址。具体内容如下：
+mkdir -p /data/tmp/hadoop/tmp
+vim /apps/hadoop/etc/hadoop/core-site.xml
+<property>  
+    <name>hadoop.tmp.dir</name>  
+    <value>/data/tmp/hadoop/tmp</value>  
+</property>  
+<property>  
+    <name>fs.defaultFS</name>  
+    <value>hdfs://0.0.0.0:9000</value>  
+</property>
+
+9.修改hadoop下hdfs的相关配置
+首先提前创建好hdfw的临时文件存储目录。
+mkdir -p /data/tmp/hadoop/hdfs
+
+输入vim /apps/hadoop/etc/hadoop/hdfs-site.xml，打开hdfs-site.xml配置文件。在configuration栏中配置元数据(namenode)信息存储位置以及具体数据(datanode)存储位置,并配置好每个数据库被分数(伪分布式下设置为1)，同时置hdfs是否启用权限认证。
+vim /apps/hadoop/etc/hadoop/hdfs-site.xml
+<property>  
+    <name>dfs.namenode.name.dir</name>  
+    <value>/data/tmp/hadoop/hdfs/name</value>  
+</property>  
+ <property>  
+     <name>dfs.datanode.data.dir</name>  
+     <value>/data/tmp/hadoop/hdfs/data</value>  
+ </property>  
+ <property>  
+     <name>dfs.replication</name>  
+     <value>1</value>  
+ </property>  
+ <property>  
+     <name>dfs.permissions.enabled</name>  
+     <value>false</value>  
+ </property> 
+保存并退出
+
+10.配置slavers节点
+输入vim /apps/hadoop/etc/hadoop/slaves，打开slaves配置文件。由于只有一台节点，所以slaves文件下只设置本地主机回路地址
+localhost
+
+11.格式化HDFS文件系统
+执行 hadoop namenode -format
+
+12.切换目录到/apps/hadoop/sbin目录下。并启动hdfs相关进程
+cd /apps/hadoop/sbin/
+./start-dfs.sh
+
+13.监测HDFS相关进程是否已经启动。
+输入jps命令
+jps
+
+可以看到相关进程都已经启动
+
+14.进一步监测HDFS的运行状态。
+先在HDFS文件系统上创建一个目录hadoop1
+hadoop fs -mkdir /myhadoop1
+
+输入hadoop文件操控命令 hadoop fs -ls -R / 查看是否存在hadoop1目录
+
+自此HDFS安装完毕
+
+15.配置MapReduce先关配置
+切换到hadoop配置文件目录，将mapreduce的配置文件mapred-site.xml.template，重命名为mapred-site.xml。
+cd /apps/hadoop/etc/hadoop
+mv /apps/hadoop/etc/hadoop/mapred-site.xml.template  /apps/hadoop/etc/hadoop/mapred-site.xml
+
+输入vim /apps/hadoop/etc/hadoop/mapred-site.xml，打开mapred-site.xml配置文件。
+将mapreduce相关配置，添加到<configuration>标签之间。具体内容见下图。
+vim /apps/hadoop/etc/hadoop/mapred-site.xml
+<property>  
+    <name>mapreduce.framework.name</name>  
+    <value>yarn</value>  
+</property>
+
+输入vim /apps/hadoop/etc/hadoop/yarn-site.xml，打开yarn-site.xml配置文件。将yarn相关配置，添加到<configuration>标签之间。具体内容见下图。
+vim /apps/hadoop/etc/hadoop/yarn-site.xml 
+<property>  
+    <name>yarn.nodemanager.aux-services</name>  
+    <value>mapreduce_shuffle</value>  
+</property>
+
+下面来启动计算层面相关进程，切换到hadoop启动目录。执行命令启动yarn
+cd /apps/hadoop/sbin/
+./start-yarn.sh
+
+输入jps查看当前运行的进程（五个进程）
+
+16.执行测试，使用自带的MapReduce jar包执行wordcount操作
+切换到/apps/hadoop/share/hadoop/mapreduce目录下，在该目录下拍MapReduce计算Pi的程序。
+cd /apps/hadoop/share/hadoop/mapreduce
+hadoop jar hadoop-mapreduce-examples-2.6.0-cdh5.4.5.jar pi 3 3
+
+

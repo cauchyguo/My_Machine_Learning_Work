@@ -1,0 +1,144 @@
+数据准备
+1.首先在Linux上新建/data/python9目录，并切换到该目录下。
+sudo mkdir -p /data/python9/ 
+cd /data/python9/ 
+
+2.使用wget命令下载训练数据到/data/python9/ 目录下
+sudo wget http://192.168.1.100:60000/allfiles/python9/Font_data.csv
+
+3.打开 Pycharm,点击File->New Project，进入下面界面，新建Python项目，命名为python9
+
+4.在python9项目下，新建Python File 文件，添加KNN.java文件，做KNN算法的笔记识别。
+
+数据探索
+在pycharm的Python Console终端对数据进行初步探索
+导入pandas库，读取训练数据。代码如下:
+train_data = pd.read_csv('/data/python9/Font_data.csv')
+然后在右侧变量栏通过dataframe查看器可观察数据集的初始情况。可知第一个column列即为标签属性，接下来在终端输入
+train.info()查看训练数据的整体属性
+
+可知该数据集有42000个样本，并有785个属性，且属性类型均为Int类型
+
+根据与此可知训练集数量不小，于是决定划分提取训练集合测试集。这里使用sklearn中的函数train_test_split对数据集进行抽样划分，其中测试集的比例为0.2.
+import pandas as pd  
+from sklearn.cross_validation import train_test_split
+data = pd.read_csv('/data/python9/Font_data.csv')  
+X = data.values[:,1:]
+Y = data['label'].values
+train_data,test_data,train_label,test_label = train_test_split(X, Y, train_size,test_size=10000)
+print(train_data.shape)  
+print(test_data.shape) 
+
+
+数据预处理
+由于数据集的属性集有700多，维度过高，于是打算通过PCA主成分分析法对数据进行降维处理，代码如下: 
+from sklearn.decomposition import PCA  
+pca=PCA(n_components = 0.8)  
+train_x = pca.fit_transform(train_data)  
+test_x = pca.transform(test_data) 
+
+其中n_components为0.8表明根据指定主成分的方差和所占的最小比例阈值(0.8)来决定最终降维后的维度
+
+模型训练
+本项目主要是对笔迹进行识别分类，于是采用了KNN算法，即选择样本在特征空间中最相似的k个样本(即特征空间中最邻近)中的大多数标签来判断其标签类别。KNN属于惰性学习法。其中对生成模型并对字体进行识别的代码如下:
+from sklearn.neighbors import KNeighborsClassifier 
+neighbors = KNeighborsClassifier(n_neighbors=4)  
+neighbors.fit(train_x,train_label)  
+pre= neighbors.predict(test_x)  
+其中将KNN算法的近邻设定为5
+
+然后对模型评估进行评估，这里简单采用了准确率对测试结果进行评估，并统计了该模型的时间开销。代码如下:
+acc = float((pre==test_label).sum())/len(test_x)  
+print('Accuracy rate：%f,Cost time：%.2fs' %(acc,time.time()-t)) 
+
+数据可视化
+最后为了更直观分查看模型效果，我们采用了matplotlib库对训练集测试集进行可视化处理。随机显示出4个训练数据的图像和4个预测的图像。代码如下:
+
+train_data1=[]
+j = 1
+for i in range(2,200):
+    train=train_data[i,:].reshape(28,28)
+    if (train_label[i] not in train_data1)and (j<5):
+        # print(index, '\n', (image, label))
+        plt.subplot(2, 4, j )
+        plt.axis('off')
+        plt.imshow(train, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.title('train_%s' % train_label[i])
+        train_data1.append(train_label[i])
+        j+=1
+    i+=1
+predict=[]
+k=5
+for i in range(100):
+    test=test_data[i,:].reshape(28,28)
+    if (pre[i] not in predict) and (k<9):
+        plt.subplot(2, 4, k)
+        plt.axis('off')
+        plt.imshow(test, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.title('test_%s' % pre[i])
+        predict.append(pre[i])
+        k+=1
+    i+=1
+plt.show()
+
+
+总代码如下:
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cross_validation import train_test_split
+import matplotlib.pyplot as plt
+import time
+
+data = pd.read_csv('/data/python9/Font_data.csv')  
+X = data.values[:,1:]
+Y = data['label'].values
+train_data,test_data,train_label,test_label = train_test_split(X, Y, test_size=0.2)
+print(train_data.shape)
+print(test_data.shape)
+t = time.time()
+pca = PCA(n_components=0.8)
+train_x = pca.fit_transform(train_data)
+test_x = pca.transform(test_data)
+neighbors = KNeighborsClassifier(n_neighbors=4)
+neighbors.fit(train_x, train_label)
+pre = neighbors.predict(test_x)
+acc = float((pre == test_label).sum()) / len(test_x)
+print('Accuracy rate：%f,Cost time：%.2fs' %(acc,time.time()-t)) 
+train_data1=[]
+j = 1
+for i in range(2,200):
+    train=train_data[i,:].reshape(28,28)
+    if (train_label[i] not in train_data1)and (j<5):
+        # print(index, '\n', (image, label))
+        plt.subplot(2, 4, j )
+        plt.axis('off')
+        plt.imshow(train, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.title('train_%s' % train_label[i])
+        train_data1.append(train_label[i])
+        j+=1
+    i+=1
+predict=[]
+k=5
+for i in range(100):
+    test=test_data[i,:].reshape(28,28)
+    if (pre[i] not in predict) and (k<9):
+        plt.subplot(2, 4, k)
+        plt.axis('off')
+        plt.imshow(test, cmap=plt.cm.gray_r, interpolation='nearest')
+        plt.title('test_%s' % pre[i])
+        predict.append(pre[i])
+        k+=1
+    i+=1
+plt.show()
+
+运行结果如图:
+可见模型的准确率为，开销时间
+
+可视化结果
+
+
+
+
+
+

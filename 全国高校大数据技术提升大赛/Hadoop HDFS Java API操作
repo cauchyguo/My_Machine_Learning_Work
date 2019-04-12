@@ -1,0 +1,56 @@
+1.切换目录到/apps/hadoop/sbin下，启动hadoop。
+cd /apps/hadoop/sbin  
+./start-all.sh  
+
+2.创建目录
+在linux文件系统上创建/data/hadoop4目录，进入hadoop4目录，使用wget命令下载hadoop依赖包并将其解压到当前目录
+tar -zxvf hadoop2lib.tar.gz -C ./
+
+3.启动Eclipse创建一个hadoop4项目，在该项目下新加包my.hdfs，hadoop4项目下创建目录hadoop4lib用于存放项目所需依赖包。然后将/data/hadoop4/hadoop2lib目录下拷贝所有jar包到项目下的hadoop4lib目录。最终项目文件结构如下:
+
+4.选中hadoop4lib里面的所有jar包通过BuildPath选项将jar包都加载到项目里以便完成Java Api对HDFS的各项基本操作。加载后结果如下:
+
+5.通过Java api在HDFS上创建目录
+在my.hdfs包下，新建类MakeDir,编写代码，该程序主要通过mkdirs方法对FileSystem对象完成创建目录的创建，其中关键代码如下：
+
+该代码完成了在HDFs上创建一个/hdfstest目录
+
+6.通过Java api在HDFS上创建文件
+在my.hdfs包下，新建类TouchFile,编写代码，该程序主要通过create方法对FileSystem对象完成创建文件的创建，其中关键代码如下：
+
+该代码完成了在HDFS /hdfstest目录下创建一个叫touchfile的文件
+
+7.通过Java api在HDFS上上传文件
+在/data/hadoop4创建一个叫sample_data的文件，该文件内容如下:
+
+然后在Eclipse项目的my.hdfs包下，新建类CopyFromLocalFile,编写代码，该程序主要通过CopyFromLocalFile方法对FileSystem对象完成文件上传的操作，其中关键代码如下：
+
+该代码将/data/hadoop4目录下的sample_data文件上传到HDFS的/hdfstest目录下
+
+8.通过Java api在HDFS上下载文件
+在Eclipse项目的my.hdfs包下，新建类CopyToLocalFile,编写代码，该程序主要通过CopyToLocalFile方法对FileSystem对象完成文件下载的操作，其中关键代码如下：
+
+该代码将HDFS中/hdfstest目录下的sample_data文件下载到/data/hadoop4目录下并重命名为copytolocal
+
+9.通过Java api在HDFS上修改文件权限及属性
+在Eclipse项目的my.hdfs包下，新建类ChangePermission,编写代码，该程序主要通过setPermission方法对FileSystem对象完成HDFS上文件权限的修改，其中关键代码如下：
+
+该代码将HDFS中/hdfstest目录下的sample_data文件的权限修改为"777"，修改前sample_data的权限如下:
+
+运行代码后，通过Hadoop Cli命令查看sample_data的权限如下：
+
+sample_data在通过Java api成功被修改权限!
+
+10.通过Java api在HDFS上查看文件块信息
+在Eclipse项目的my.hdfs包下，新建类LocateFile,编写代码，其中关键代码如下：
+
+运行后，可见sample_data文件的块信息如下:
+
+11.通过Java api在HDFS文件上写入内容
+在Eclipse项目的my.hdfs包下，新建类WriteFile,编写代码，其中关键代码如下：
+
+该代码第一步现在HDFS上/hdfstest目录下创建了一个writefile空文件，第二步写入"hello world hello data"到该文件中
+
+运行成功，使用Hadoop cli命令可查看到该文件及其文件内容
+
+

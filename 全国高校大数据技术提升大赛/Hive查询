@@ -1,0 +1,75 @@
+1.首先检查Hadoop相关进程，是否已经启动。若未启动，切换到/apps/hadoop/sbin目录下，启动Hadoop。
+jps
+cd /apps/hadoop/sbin  
+./start-all.sh  
+
+然后执行启动以下命令，开启Mysql库，用于存放Hive的元数据。
+sudo service mysql start 
+
+启动Mysql后，在终端命令行界面，直接输入Hive命令，启动Hive命令行。
+hive
+
+
+2.打开一个新的命令行，切换到/data/hive3目录下，如不存在需提前创建hive3文件夹。
+mkdir -p /data/hive3  
+cd /data/hive3 
+wget 
+
+3.在hive命令行，创建买家行为日志表，名为buyer_log，包含ID（id） 、用户ID（buyer_id） 、时间（dt） 、 地点（ip） 、操作类型（opt_type）5个字段，字符类型为string，以'\t'为分隔符。
+create table buyer_log(id string,buyer_id string,dt string,ip string,opt_type string)  
+row format delimited fields terminated by '\t'  stored as textfile;
+
+创建买家收藏表，名为buyer_favorite，用户ID（buyer_id） 、商品ID（goods_id）、时间（dt）3个字段，字符类型为string，以'\t'为分隔符。
+create table buyer_favorite(buyer_id string,goods_id string,dt string)  
+row format delimited fields terminated by '\t'  stored as textfile;
+
+4.将本地/data/hive3/下的表buyer_log中数据导入到Hive中的buyer_log表中，表buyer_favorite中数据导入到Hive中的buyer_favorite表中。
+load data local inpath '/data/hive3/buyer_log' into table buyer_log;  
+load data local inpath '/data/hive3/buyer_favorite' into table buyer_favorite;
+
+5.普通查询，例如查询buyer_log表中全部字段，数据量大时应避免查询全部数据。（limit 10为限制查询10条数据）
+select * from buyer_log limit 10;
+
+6.别名查询，例如查询表buyer_log中id和ip字段，当多表连接字段较多时，常常使用别名。（limit 10为限制查询10条数据）
+select b.id,b.ip from buyer_log b limit 10;
+
+7.限定查询（where），例如查询buyer_log表中opt_type=1的用户ID(buyer_id)。（limit 10为限制查询10条数据。
+select buyer_id from buyer_log where opt_type=1 limit 10;
+
+8.两表或多表联合查询，例如通过用户ID(buyer_id)连接表buyer_log和表buyer_favorite，查询表buyer_log的dt字段和表buyer_favorite的goods_id字段，多表联合查询可以按需求查询多个表中不同字段，生产中常用。（limit 10为限制查询10条数据。
+select l.dt,f.goods_id from buyer_log l,buyer_favorite f where l.buyer_id = f.buyer_id limit 10;
+
+9.多表插入，多表插入指的是在同一条语句中，把读取的同一份数据插入到不同的表中。只需要扫描一遍数据即可完成所有表的插入操作， 效率很高。
+create table buyer_log1 like buyer_log;  
+create table buyer_log2 like buyer_log; 
+
+10.将buyer_log表中数据插入到buyer_log1和buyer_log2。
+from buyer_log  
+insert overwrite table buyer_log1 select *  
+insert overwrite table buyer_log2  select *;
+
+11.多目录输出文件，将同一文件输出到本地不同文件夹中，提高效率，可以避免重复操作from ，将买家行为日志buyer_log表导入到本地‘/data/hive3/out’和‘data/hive3/out1’中
+from buyer_log  
+insert overwrite local directory '/data/hive3/out' select *;  
+insert overwrite local directory '/data/hive3/out1' select *;
+
+在本地切换到/data/hive3中，查询输出文件。
+cd /data/hive3  
+ls out  
+ls out1  
+
+12.使用shell脚本调用Hive查询语句。
+
+切换目录到本地目录’/data/hive3‘下，使用vim编写一个shell脚本，名为sh1，使其功能实现查询Hive中所有表。
+cd /data/hive3  
+vim sh1 
+在sh1中，输入以下脚本，并保存退出。
+#!/bin/bash  
+cd /apps/hive/bin;  
+hive -e 'show tables;'
+
+13.编写完成，赋予其执行权限。
+chmod +x sh1 
+
+14.执行shell脚本 。
+./sh1  

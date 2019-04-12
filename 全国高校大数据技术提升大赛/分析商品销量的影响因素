@@ -1,0 +1,88 @@
+数据准备
+1.首先在Linux上新建/data/python13目录，并切换到该目录下，使用wget命令下载任务所需的数据集到当前目录下。
+sudo mkdir -p /data/python13/  
+cd /data/python13/  
+sudo wget http://192.168.1.100:60000/allfiles/python13/sales_data.txt  
+2.新建Python项目，名为python13，新建python file 文件,名为：DecisionTree.py
+
+数据探索
+在pycharm的Python Console终端对数据进行初步探索
+导入pandas库，读取训练数据。代码如下:
+data=pd.read_csv('/data/python13/sales_data.txt',index_col='序号') 
+然后在右侧变量栏通过dataframe查看器可观察数据集的初始情况。
+
+接下来在终端输入,train.info()查看训练数据的整体属性
+
+可知该训练集样本共有34个，每个样本有四个属性，都为离散属性并且没有缺失属性，其中销量属性为标签属性。
+
+再输入 data.apply(pd.value_counts)查看各个属性的取值情况。
+
+数据预处理
+由上诉可知，其中天气属性的属性值为'好'或坏，是否周末和是否有促销的属性取值为'是'或'否'，而标签属性销量的取值为'高'或'低'。综上，四个属性的均为二元标称属性，因此为了更好地使用决策树分类，决定打算将这些属性数值化，离散属性的数值化常用labelencoder方法，这里由于数据集小且属性取值二元，所以打算采用直接赋值的方法。代码如下:
+data[data=='好']=1  
+data[data=='是']=1  
+data[data=='高']=1  
+data[data!=1]=-1 
+
+处理结果如下:
+
+
+特征提取
+特征方面由于只有三个属性，所以只是做了简单的特征提取工作，将训练集的特征属性和标签属性转换为numpy数组用作模型训练的输入，代码如下：
+import pandas as pd  
+data=pd.read_csv('/data/python13/sales_data.txt',index_col='序号') 
+x=data.iloc[:,:3].as_matrix().astype(int)  
+y=data.iloc[:,3].as_matrix().astype(int)
+
+模型训练
+任务是采用决策树模型进行预测。这里简单采用了sklearn库中DecisionTreeClassifier模块，基于基尼指数的信息熵来进行决策划分。代码如下:
+from sklearn.tree import DecisionTreeClassifier as DTC
+dtc=DTC(criterion="gini").fit(x,y) 
+
+可视化
+最后为了更直观分查看决策树的生成模型，我们采用了sklearn库的树模型的export_graphviz模块对训练集测试集进行可视化处理。将生成的决策树模型保存为一个tree.dot的文件。
+代码如下:
+from sklearn.tree import export_graphviz  
+with open( 'tree.dot','w') as f:  
+    f=export_graphviz(dtc,feature_names=data.columns,out_file=f)  
+
+在linux终端下载使用apt-get命令安装graphviz包，其可将dot文件转化为png等图像文件
+sudo apt-get install graphviz
+dpkg -l | grep graphviz
+
+将/home/zhangyu/python13下的tree.dot文件转化为png图像文件
+dot -Tpng tree.dot -o tree.png
+使用pycharm打开该文件。
+
+完整代码  
+import pandas as pd  
+from sklearn.tree import DecisionTreeClassifier as DTC  
+from sklearn.tree import export_graphviz 
+
+data=pd.read_csv('/data/python13/sales_data.txt',index_col='序号')  
+print(data.columns)  
+data[data=='好']=1  
+data[data=='是']=1  
+data[data=='高']=1  
+data[data!=1]=-1  
+  
+x=data.iloc[:,:3].as_matrix().astype(int)  
+y=data.iloc[:,3].as_matrix().astype(int)  
+  
+dtc=DTC(criterion="gini").fit(x,y)  
+
+with open( 'tree.dot','w') as f:  
+    f=export_graphviz(dtc,feature_names=data.columns,out_file=f)  
+    
+11.运行结果：
+
+可以在当前目录(/home/zhangyu/python13)下，看到一个名为tree.dot的文件
+
+12.在linux本地任意目录下，使用apt-get命令安装graphviz包
+
+view plain copy
+sudo apt-get install graphviz  
+然后，在/home/zhangyu/python13文件下，以如下方式编译，将其转化为可视化文件tree.png
+
+view plain copy
+dot -Tpng tree.dot -o tree.png  

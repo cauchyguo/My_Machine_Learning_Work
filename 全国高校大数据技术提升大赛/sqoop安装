@@ -1,0 +1,115 @@
+1.首先在Linux本地，新建/data/sqoop1目录，用于存放所需文件。
+
+view plain copy
+mkdir -p /data/sqoop1  
+切换目录到/data/sqoop1下，使用wget命令，下载Sqoop所需安装包sqoop-1.4.5-cdh5.4.5.tar.gz以及mysql-connector-java-5.1.26-bin.jar。
+
+view plain copy
+cd /data/sqoop1  
+wget http://192.168.1.100:60000/allfiles/sqoop1/sqoop-1.4.5-cdh5.4.5.tar.gz  
+wget http://192.168.1.100:60000/allfiles/sqoop1/mysql-connector-java-5.1.26-bin.jar  
+2.将/data/sqoop1目录下Sqoop的安装包，解压到/apps目录下。
+
+view plain copy
+tar -xzvf /data/sqoop1/sqoop-1.4.5-cdh5.4.5.tar.gz  -C  /apps/  
+切换到/apps目录下，将解压的sqoop-1.4.5-cdh5.4.5重命名为sqoop。
+
+view plain copy
+cd /apps  
+mv /apps/sqoop-1.4.5-cdh5.4.5/  /apps/sqoop  
+3.修改环境变量，使用vim打开~/.bashrc文件。
+
+view plain copy
+sudo vim ~/.bashrc  
+添加以下内容到~/.bashrc文件中。
+
+view plain copy
+#sqoop  
+export SQOOP_HOME=/apps/sqoop  
+export PATH=$SQOOP_HOME/bin:$PATH  
+使用source命令，使用户环境变量生效。
+
+view plain copy
+source ~/.bashrc  
+4.由于在导数据过程中，可能会涉及到连接Mysql，所以需要将/data/sqoop1目录下，Mysql的jdbc连接包mysql-connector-java-5.1.26-bin.jar，拷贝到Sqoop的lib目录下。
+
+view plain copy
+cp /data/sqoop1/mysql-connector-java-5.1.26-bin.jar /apps/sqoop/lib  
+5.配置Sqoop。
+
+切换到/apps/sqoop/conf目录下，将sqoop-env-template.sh重命名为sqoop-env.sh。
+
+view plain copy
+cd /apps/sqoop/conf/  
+mv sqoop-env-template.sh sqoop-env.sh  
+使用vim打开sqoop-env.sh文件。
+
+view plain copy
+vim /apps/sqoop/conf/sqoop-env.sh  
+将sqoop-env.sh中的配置，修改为如下形式。
+
+view plain copy
+#Set path to where bin/hadoop is available  
+export HADOOP_COMMON_HOME=/apps/hadoop  
+#Set path to where hadoop-*-core.jar is available  
+export HADOOP_MAPRED_HOME=/apps/hadoop  
+#set the path to where bin/hbase is available  
+export HBASE_HOME=/apps/hbase  
+#Set the path to where bin/hive is available  
+export HIVE_HOME=/apps/hive  
+#Set the path for where zookeper config dir is  
+#export ZOOCFGDIR=/apps/zookeeper  
+这里的配置项，是告诉Sqoop框架，Hadoop、HBase、Hive等的相关路径。
+
+6.下面再切换到/apps/sqoop/bin目录下。
+
+view plain copy
+cd /apps/sqoop/bin/  
+下面来修改configure-sqoop里面的部分脚本，使用vim打开configure-sqoop文件。
+
+view plain copy
+vim configure-sqoop  
+在configure-sqoop文件中，查找下面内容，并在前面加上“#”号，将脚本注释掉。
+
+view plain copy
+## Moved to be a runtime check in sqoop.  
+#if [ ! -d "${HBASE_HOME}" ]; then  
+#  echo "Warning: $HBASE_HOME does not exist! HBase imports will fail."  
+#  echo 'Please set $HBASE_HOME to the root of your HBase installation.'  
+#fi  
+## Moved to be a runtime check in sqoop.  
+#if [ ! -d "${HCAT_HOME}" ]; then  
+#  echo "Warning: $HCAT_HOME does not exist! HCatalog jobs will fail."  
+#  echo 'Please set $HCAT_HOME to the root of your HCatalog installation.'  
+#fi  
+#if [ ! -d "${ACCUMULO_HOME}" ]; then  
+#  echo "Warning: $ACCUMULO_HOME does not exist! Accumulo imports will fail."  
+#  echo 'Please set $ACCUMULO_HOME to the root of your Accumulo installation.'  
+#fi  
+#if [ ! -d "${ZOOKEEPER_HOME}" ]; then  
+#  echo "Warning: $ZOOKEEPER_HOME does not exist! Accumulo imports will fail."  
+#  echo 'Please set $ZOOKEEPER_HOME to the root of your Zookeeper installation.'  
+#fi  
+注释掉这段文本后，当我们输入sqoop version时，提示效果如下。
+
+view plain copy
+sqoop version  
+
+如果不注释掉这段脚本，当我们输入sqoop version时，提示效果如下。
+
+
+7.至此Sqoop安装已完毕，下面我们测试一下Sqoop能否连接Mysql。
+
+首先，来查看一下Mysql服务是否已经启动。
+
+view plain copy
+sudo service mysql status  
+
+结果显示MySQL is stopped，所以需要执行启动命令。
+
+view plain copy
+sudo service mysql start  
+然后我们查询Mysql中都有哪些数据库，测试Sqoop能否连接Mysql。
+
+view plain copy
+sqoop list-databases --connect jdbc:mysql://localhost:3306/ --username root --password strongs  

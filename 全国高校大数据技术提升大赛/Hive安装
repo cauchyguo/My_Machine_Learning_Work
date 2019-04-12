@@ -1,0 +1,90 @@
+1.首先在Linux本地，新建/data/hive1目录，用于存放所需文件
+mkdir -p /data/hive1
+
+切换到/data/hive1目录下，使用wget命令下载hive所需安装包hive-1.1.0-cdh5.4.5.tar.gz以及mysql-connector-java-5.1.26-bin.jar。
+cd /data/hive1
+wget
+
+将下载的hive-1.1.0-cdh5.4.5.tar.gz解压缩到/apps目录下，然后重命名解压后的目录为hive
+tar -zxvf hive-1.1.0-cdh5.4.5.tar.gz -C /apps/
+mv /apps/hive-1.1.0-cdh5.4.5 hive
+
+2.接下来修改环境变量，将hive的路径添加到用户环境变量中，这里通过修改用户目录下的.bashrc文件实现
+vim ~/.bashrc
+#hive config  
+export HIVE_HOME=/apps/hive  
+export PATH=$HIVE_HOME/bin:$PATH
+
+执行source命令，使更改生效
+source ~/.bashrc
+
+3.由于Hive需要将元数据，存储到Mysql中。所以需要拷贝/data/hive1目录下的mysql-connector-java-5.1.26-bin.jar到hive的lib目录下。
+cp /data/hive1/mysql-connector-java-5.1.26-bin.jar /apps/hive/lib/  
+
+4.接下来配置Hive，切换到/apps/hive/conf目录下并创建Hive的配置文件hive-site.xml
+cd /apps/hive/conf
+touch hive-site.xml
+
+使用vim打开hive-site.xml文件，添加hive关于mysql的相关配置信息，主要用于mysql的连接。
+vim hive-site.xml
+<configuration>
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:mysql://localhost:3306/hive?createDatabaseIfNotExsit=true;characterEncoding=latin1</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>com.mysql.jdbc.Driver</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>root</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>strongs</value>
+    </property>
+</configuration>
+javax.jdo.option.ConnectionURL：数据库链接字符串。
+javax.jdo.option.ConnectionDriverName：连接数据库的驱动包。
+javax.jdo.option.ConnectionUserName：数据库用户名。
+javax.jdo.option.ConnectionPassword：连接数据库的密码。
+
+5.切换到/apps/hive/conf/下，将hive-env.sh.template重命名为hive-env.sh。然后将hive,hadoop的环境配置添加到hive-env.sh文件中
+mv /apps/hive/conf/hive-env.sh.template  /apps/hive/conf/hive-env.sh 
+vim hive-env.sh
+
+# Set HADOOP_HOME to point to a specific hadoop install directory
+# HADOOP_HOME=${bin}/../../hadoop
+HADOOP_HOME=/apps/hadoop
+# Hive Configuration Directory can be controlled by:
+# export HIVE_CONF_DIR=
+export HIVE_CONF_DIR=/apps/hive/conf
+
+6.下一步是配置Mysql，用于存储Hive的元数据。
+首先执行 sudo service mysql status命令查看mysql的服务是否启动
+
+结果显示并不在运行状态，于是输入命令 sudo service mysql start启动mysql服务
+
+再次输入 sudo service mysql status 检查mysql服务是否启动，结果显示正在运行
+
+输入mysql -u root -p后进入mysql命令行模式下，创建数据hive用来储存hive数据仓库的元数据
+create database hive character utf8;
+show databases;
+
+由此成功配置用于存储Hive的元数据的mysql数据库。
+
+7.切换到/apps/hadoop/sbin目录下执行./start-all.sh启动Hadoop
+
+输入jps命令查看相关java进程可见Hadoop已启动
+
+8.使用hive创建数据库
+命令行下输入hive进入hive命令行模式，输入create databaseif not exists DB;创建一个叫DB的数据库。
+
+输入show databases;查看hive下的数据库
+
+
+
+
+
+

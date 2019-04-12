@@ -1,0 +1,21 @@
+master 172.17.0.5 655b4e6d8835
+slaver 172.17.0.15 2535206dfd81
+
+https://blog.csdn.net/Mark_LQ/article/details/53393081
+
+https://wiki.apache.org/hadoop/FAQ#I_have_a_new_node_I_want_to_add_to_a_running_Hadoop_cluster.3B_how_do_I_start_services_on_just_one_node.3F
+
+画图
+https://blog.csdn.net/cymy001/article/details/78344316
+
+http://fibrevillage.com/storage/628-how-to-add-a-new-datanode-to-a-running-hadoop-cluster
+
+1.配置ssh密钥免登录
+sudo scp -P 45082 zhangyu@ :/.ssh/authorized
+
+2.
+
+
+
+
+hadoop dfsadmin -report

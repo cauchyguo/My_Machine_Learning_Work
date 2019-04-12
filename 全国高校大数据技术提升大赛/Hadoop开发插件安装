@@ -1,0 +1,44 @@
+1.在Linux本地创建/data/hadoop3目录，用于存放所需文件。
+mkdir -p /data/hadoop3 
+
+2.切换到hadoop3文件夹，使用wget命令下载所需的插件hadoop-eclipse-plugin-2.6.0.jar
+cd /data/hadoop3  
+wget http://192.168.1.100:60000/allfiles/hadoop3/hadoop-eclipse-plugin-2.6.0.jar 
+
+
+3.将插件hadoop-eclipse-plugin-2.6.0.jar，从/data/hadoop3目录下，拷贝到/apps/eclipse/plugins的插件目录下。
+cp /data/hadoop3/hadoop-eclipse-plugin-2.6.0.jar /apps/eclipse/plugins/
+
+4.在buntu图形界面，双击eclipse图标启动eclipse。在窗口界面依次点击Window => Open Perspective => Other。
+
+选择选择Map/Reduce，并点击OK。
+
+可以看到窗口中，有三个变化。（左侧项目浏览器、右上角操作布局切换、面板窗口。在windows下，则需要手动调出面板窗口Map/Reduce Locations面板，操作为，点击window => show view => Other。
+
+在弹出的窗口中，选择Map/Reduce Locations选项，并点击OK。
+
+添加Hadoop配置，连接到Hadoop集群。
+
+6.进入到HADOOP_HOME下的sbin目录，启动hadoop。
+cd /apps/hadoop/sbin
+./start-all.sh
+
+展开左侧项目浏览视图，可以看到HDFS结构
+
+7.使用Eclipse插件创建一个test文件夹
+再使用Eclipse插件创建文件夹之前，前使用命令行查看HDFS文件系统下的目录结构。输入hadoop fs -ls -R
+
+可见HDFS文件系统下没有任何文件夹
+
+现在Eclipse项目浏览视图中，myhadoop文件夹下新建一个目录test。
+
+刷新一下，即可刷新HDFS目录
+
+8.现使用命令行验证使用Eclipse插件是否成功创建test文件夹。
+命令行输入 hadoop fs -ls -R /，可见根目录下存在一个test文件夹，且创建时间和使用eclipse 插件创建的时间一致。
+
+
+
+
+
+

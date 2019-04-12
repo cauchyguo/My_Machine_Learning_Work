@@ -1,0 +1,40 @@
+1.切换到/apps/hadoop/sbin目录下，开启Hadoop。
+cd /apps/hadoop/sbin  
+./start-all.sh 
+
+2.在Linux本地新建/data/mapreduce2目录。
+mkdir -p /data/mapreduce2
+
+3.在mapreduce目录下使用wget命令下载要统计的文本文件和hadoop的相关依赖包的压缩包
+cd /data/mapreduce2
+wget
+
+将hadoop的相关依赖包的压缩包解压到当前文件夹
+tar zxvf hadoop2lib.tar.gz 
+
+4.在HDFS上新建/mymapreduce2/in目录，然后将Linux本地/data/mapreduce2目录下的buyer_favorite1文件导入到HDFS的/mymapreduce2/in目录中。
+hadoop fs -mkdir -p /mymapreduce2/in  
+hadoop fs -put /data/mapreduce2/buyer_favorite1/mymapreduce2/in
+
+5.打开eclipse新建一个名为mapreduce2的项目，并在项目下新建一个包 mapreduce，在该包下新建类Filter，然后再在项目根文件下创建文件夹hadoop2lib用来存放hadoop相关依赖包。最终文件系统如下截图。
+
+
+
+6.将/data/mapreduce2/下hadoop的相关依赖包全部复制到上述hadooplib文件夹下，代码如下:
+cp /data/mapreduce2/hadoop2lib/* /data/myjava/mapreduce2/hadoop2lib/
+
+7.在eclipse中选中hadoop2lib目录下的所有jar包，并添加到Build Path中。
+
+8.根据实验的设计要求，在Filter.java中分别实现Map端和reduce端。最终代码如下:
+
+map阶段采用Hadoop的默认的作业输入方式，把输入的value用split()方法截取，截取出的商品id字段设置为key,设置value为空，然后直接输出<key,value>。
+
+map阶段采用Hadoop的默认的作业输入方式，把输入的value用split()方法截取，截取出的商品id字段设置为key,设置value为空，然后直接输出<key,value>。
+
+9.Filter类文件中，右键并点击=>Run As=>Run on Hadoop选项，将MapReduce任务提交到Hadoop中。
+
+运行结束后便可在eclipse终端看到结果
+
+10.执行完毕后，进入命令模式下，在HDFS上/mymapreduce2/out中查看实验结果。
+hadoop fs -ls /mymapreduce2/out  
+hadoop fs -cat /mymapreduce2/out/part-r-00000 

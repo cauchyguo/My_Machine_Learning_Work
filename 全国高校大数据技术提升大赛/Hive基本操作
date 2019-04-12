@@ -1,0 +1,139 @@
+一、实验环境准备
+1.首先在Linux本地新建/data/hive2目录。
+mkdir -p /data/hive2 
+
+2.切换到/data/hive2目录下，使用wget命令下载cat_group和goods文件
+cd /data/hive2  
+wget http://192.168.1.100:60000/allfiles/hive2/cat_group  
+wget http://192.168.1.100:60000/allfiles/hive2/goods
+
+3.输入jps检查Hadoop相关进程，是否已经启动。若未启动，切换到/apps/hadoop/sbin目录下，启动Hadoop。
+jps
+cd /apps/hadoop/sbin
+./start-all.sh
+
+4.开启Hive，首先，需要保证Mysql启动。执行以下命令，查看Mysql的运行状态。
+sudo service mysql status
+
+输出显示mysql未启动则执行:
+sudo service mysql start
+
+再次检查mysql服务状态
+sudo serivce mysql status
+
+然后输入hive开启hive
+
+二、Hive数据仓库的操作
+
+1.在Hive中创建一个数据仓库，名为DB。
+create database if not exists DB;
+
+使用describe查看数据库dDB的信息及路径
+describe database DB;
+
+三、Hive数据表的操作
+使用show tables查看已存在的表
+
+发现DB数据库中并没有任何表的存在
+1.创建一个名为cat的内部表，其中含有两个字段cat_id和cat_name，字符类型为string。代码如下:
+create  table cat（cat_id string, cat_name string);
+创建后使用show tables查看cat表是否创建成功
+
+2.创建一个外表表，表名为cat2，有两个字段为cat_id和cat_name，字符类型为string。代码如下：
+create external table if not exists cat2(cat_id string,cat_name string);
+创建后使用show tables查看cat表是否创建成功
+
+3.修改cat表的表结构。对cat表添加两个字段group_id和cat_code。
+首先使用alter选择要修改的表为cat，然后add columns接要添加的新字段，代码如下:
+alter table cat add columns(group_id string,cat_code string);
+
+使用desc命令查看一下加完字段后的cat表结构 。
+desc cat;
+
+4.修改cat2表的表名。把cat2表重命名为cat3。
+首先使用alter选择要修改的表名然后输入rename to接要重命名的表名。代码如下:
+alter table cat2 rename to cat3; 
+
+该命令可以让用户为表更名，数据所在的位置和分区名并不改变。
+
+5.删除名为cat3的表并查看。
+与mysql的操作方式相同，使用drop来完成表的删除。
+
+删除后使用show tables验证表是否删除完毕。
+show tables;
+
+6.创建与已知表相同结构的表，创建一个与cat表结构相同的表，名为cat4，这里要用到like关键字。代码如下：
+create table cat4 like cat;
+
+desc cat4查看创建后的表cat4的具体结构。
+
+四、Hive中数据的导入导出
+1.从本地文件系统中导入数据到Hive表。
+首先，在Hive中创建一个cat_group表，包含group_id和group_name两个字段，字符类型为string，以“\t”为分隔符，并查看结果。
+create table cat_group(group_id string,group_name string) row format delimited fields terminated by '\t'  stored as textfile;  
+show tables;
+
+
+[row format delimited]关键字，是用来设置创建的表在加载数据的时候，支持的列分隔符。
+[stored as textfile]关键字，是用来设置加载数据的数据类型，默认是TEXTFILE，如果文件数据是纯文本，就是使用 [stored as textfile]，然后从本地直接拷贝到HDFS上，Hive直接可以识别数据。
+
+然后，将Linux本地/data/hive2目录下的cat_group文件导入到Hive中的cat_group表中。
+load data local inpath '/data/hive2/cat_group' into table cat_group;
+
+使用select语句查看cat_group表中是否成功导入数据，由于数据量大，使用limit关键字限制输出10条记录。代码如下:
+select * from cat_group limit 10;
+
+由结果可见导入成功
+2.将HDFS上的数据导入到Hive中。
+首先，另外开启一个操作窗口，在HDFS上创建/myhive2目录。代码如下:
+hadoop fs -mkdir /myhive2  
+
+然后，将本地/data/hive2/下的cat_group表上传到HDFS的/myhive2上，并查看是否创建成功。
+hadoop fs -put /data/hive2/cat_group /myhive2  
+hadoop fs -ls /myhive2 
+接着，在Hive中创建名为cat_group1的表，创表语句如下。
+create table cat_group1(group_id string,group_name string)  
+row format delimited fields terminated by '\t'  stored as textfile; 
+
+show tables;
+
+最后，将HDFS下/myhive2中的表cat_group导入到Hive中的cat_group1表中 。代码如下:
+load data inpath '/myhive2/cat_group' into table cat_group1;  
+
+使用select命令查看查看cat_group1表中是否成功导入数据，由于数据量大，使用limit关键字限制输出10条记录。代码如下:
+select * from cat_group1 limit 10;
+
+五.将hive表的数据导出
+1.导出到本地操作系统
+首先，在Linux本地新建/data/hive2/out目录。
+mkdir -p /data/hive2/out 
+
+然后使用insert overwrite将hive表上的数据写入到out目录下
+insert overwrite local directory '/data/hive2/out' select group_id,concat('\t',group_name) from cat_group; 
+
+完成后使用cat命令查看导出文件的内容
+cd /data/hive2/out  
+ls  
+cat 000000_0 
+
+六.创建桶表
+创建一个名为goods_t的表，包含两个字段goods_id和goods_status，字符类型都为string，按cat_id string做分区，按goods_status列聚类和goods_id列排序，划分成两个桶
+create table goods_t(goods_id string,goods_status string) partitioned by (cat_id string) clustered by(goods_status) sorted by (goods_id) into 2 buckets;
+
+创建表goods_t后使用desc查看goods_t表结构。
+desc goods_t;
+设置环境变量set hive.enforce.bucketing=ture
+
+
+
+通过 partitioned by 关键字确定分区表的分区字段以创建分区表，代码如下；
+create table goods(goods_id string,goods_status string) partitioned by (cat_id string)  
+row format delimited fields terminated by '\t'; 
+
+load data local inpath '/data/hive2/goods' into table goods_1;​
+
+alter table goods partition(cat_id=52052) rename to partition(cat_id=52051);  
+show partitions goods; 
+
+create table goods_1(goods_id string,goods_status string,cat_id string)  
+row format delimited fields terminated by '\t'; 

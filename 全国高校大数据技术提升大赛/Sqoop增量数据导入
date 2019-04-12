@@ -1,0 +1,118 @@
+任务步骤
+1.首先检查Hadoop相关进程，是否已经启动。若未启动，切换到/apps/hadoop/sbin目录下，启动Hadoop。
+jps  
+cd /apps/hadoop/sbin  
+./start-all.sh  
+2.在Linux本地新建/data/sqoop3目录。
+
+mkdir -p /data/sqoop3  
+切换到/data/sqoop3目录下，使用wget命令，下载http://192.168.1.100:60000/allfiles/sqoop3中的文件。
+
+cd /data/sqoop3  
+wget http://192.168.1.100:60000/allfiles/sqoop3/dtbefore.txt  
+3.另开一个窗口，开启Mysql服务。
+
+
+sudo service mysql start  
+登录Mysql，密码strongs。
+
+mysql -u root -p  
+
+4.在Mysql库中，创建sqoop数据库并使用sqoop库。
+
+
+create database sqoop;  
+use sqoop;  
+
+然后在sqoop库中为某电商创建一张买家信息表，名为buyer，包含buyer_id 、reg_date、reg_ip、buyer_status四个字段，buyer_id 为主键，字符类型均为varchar(100)。
+
+
+create table buyer(  
+ buyer_id int,reg_date varchar(100),reg_ip varchar(100),buyer_status varchar(100) not null,  
+ primary key (buyer_id));  
+
+5.查看本地/data/sqoop3/dtbefore.txt文件，将前五条数据插入到buyer表中。
+
+
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10001','2008-10-21 15:31:33',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10002','2008-08-14 10:53:56',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10003','2008-10-16 15:31:33',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10004','2008-08-28 09:39:51',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10005','2008-09-02 00:01:42',' ','1');  
+
+查看buyer表中内容。
+
+
+select * from buyer;  
+
+下面介绍两种Sqoop增量数据导入方法。
+
+6.另开一个窗口，将Mysql中表buyer导入到HDFS的/mysqoop/111中。
+
+
+sqoop import \  
+--connect jdbc:mysql://localhost:3306/sqoop \  
+--username root \  
+--password strongs \  
+--table buyer -m 1 \  
+--target-dir /mysqoop/111  
+待执行完毕后，查看HDFS上/mysqoop/111中的文件。
+
+
+hadoop fs -ls /mysqoop/111  
+hadoop fs -cat /mysqoop/111/part-m-00000  
+
+7.使用Append模式（字段增长），增量导入
+
+在Mysql窗口，向Mysql的buyer表中新插入三条数据。
+
+
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10006','2008-10-17 17:27:52',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10007','2008-09-22 09:33:57',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10008','2008-09-23 23:26:33',' ','1');  
+使用Sqoop将新增的数据抽取到HDFS上的/mysqoop/111中。
+
+
+sqoop import --connect jdbc:mysql://localhost:3306/sqoop --username root -password strongs --table buyer -m 1 \  
+--incremental append --check-column buyer_id --target-dir /mysqoop/111  
+查看HDFS中/mysqoop/111。
+
+
+hadoop fs -ls /mysqoop/111  
+hadoop fs -cat /mysqoop/111/part-m-00001  
+
+由结果可知，part-m-00001中有之前导入的重复值，也就是说Sqoop又执行了一次完整导入，而我们的需求是只将新增数据抽取出来，我们需加上--last-value参数，修改后如下：
+
+
+sqoop import --connect jdbc:mysql://localhost:3306/sqoop --username root -password strongs --table buyer -m 1 \  
+--incremental append  --last-value 10005 --check-column buyer_id --target-dir /mysqoop/111  
+查看结果。
+
+
+hadoop fs -ls /mysqoop/111  
+hadoop fs -cat /mysqoop/111/part-m-00002  
+
+此时结果正确。
+
+8.使用Lastmodified模式（时间增长），增量导入
+
+在Mysql窗口中，向buyer表新插入两行数据。
+
+
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10009','2008-10-22 10:14:16',' ','1');  
+insert into buyer (buyer_id,reg_date,reg_ip,buyer_status) values ('10010','2008-10-22 12:32:10',' ','1');  
+
+将reg_date字符类型改为date类型。
+
+
+alter table buyer modify reg_date date;  
+
+在另一个窗口，使用sqoop命令，以2008-10-21为上一次截止时间进行增量导入，输出目录为HDFS中的/mysqoop/222。
+
+
+sqoop import --connect jdbc:mysql://localhost:3306/sqoop --username root --password strongs --table buyer -m 1 \  --incremental lastmodified --check-column reg_date --last-value '2008-10-21 15:31:33' --target-dir /mysqoop/2  
+查看导入后数据。
+
+
+hadoop fs -ls /mysqoop/222  
+hadoop fs -cat /mysqoop/222/part-m-00000 
