@@ -1,5 +1,12 @@
-# -*- coding: utf-8 -*-
 # File: feature_extract.py
+#! /usr/bin/python3
+# -*- coding:utf-8 -*-
+"""
+@author: Cauchy
+@file: feature_extract.py
+@e-mail: cauchyguo@gmail.com
+@time: 2018/6/21 18:57
+"""
 
 import pandas as pd
 from datetime import *
